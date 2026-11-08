@@ -1,0 +1,270 @@
+rules_version = '2';
+
+// G62-2 Reservas gastronomicas y recepcion
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Utilidades
+    function signedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+    function rol() {
+      return get(/databases/$(database)/documents/users/$(uid())).data.rol;
+    }
+    function isCliente() { return signedIn() && rol() == 'cliente'; }
+    function isAdmin() { return signedIn() && rol() == 'admin_salon'; }
+    function isHost() { return signedIn() && rol() == 'anfitrion'; }
+    function isStaff() { return signedIn() && rol() in ['admin_salon', 'anfitrion']; }
+
+    function reservaPath(id) { return /databases/$(database)/documents/reservas/$(id); }
+    function slotPath(id) { return /databases/$(database)/documents/slots/$(id); }
+    function lockPath(id) { return /databases/$(database)/documents/cliente_franja/$(id); }
+    function bloqueoPath(id) { return /databases/$(database)/documents/bloqueos/$(id); }
+
+    function onlyChanged(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    // Perfiles: el usuario nace como cliente y no puede cambiar su rol
+    match /users/{userId} {
+      allow read: if signedIn() && (uid() == userId || isStaff());
+
+      allow create: if signedIn()
+        && uid() == userId
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'nombre', 'rol', 'createdAt'])
+        && request.resource.data.uid == userId
+        && request.resource.data.rol == 'cliente'
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.nombre is string
+        && request.resource.data.nombre.size() > 0
+        && request.resource.data.nombre.size() <= 80
+        && request.resource.data.createdAt == request.time;
+
+      // Solo el nombre: rol, uid y email quedan fijos.
+      allow update: if signedIn()
+        && uid() == userId
+        && onlyChanged(['nombre'])
+        && request.resource.data.nombre is string
+        && request.resource.data.nombre.size() > 0
+        && request.resource.data.nombre.size() <= 80;
+
+      allow delete: if false;
+    }
+
+    // Reservas
+    match /reservas/{reservaId} {
+
+      // resource == null: el cliente consulta si su envio anterior llego.
+      allow get: if signedIn()
+        && (resource == null || isStaff() || resource.data.clienteUid == uid());
+      allow list: if signedIn()
+        && (isStaff() || resource.data.clienteUid == uid());
+
+      // Regla 1: futura, 1 a 8 personas, franja de inicio en hora fija
+      allow create: if isCliente() && creacionValida();
+
+      allow update: if signedIn()
+        && request.resource.data.version == resource.data.version + 1
+        && request.resource.data.updatedAt == request.time
+        && (clienteCancela()
+            || adminConfirma()
+            || adminRechaza()
+            || hostRegistraLlegada()
+            || hostFinaliza()
+            || hostMarcaAusente());
+
+      // El historial se conserva: nadie borra reservas.
+      allow delete: if false;
+
+      function creacionValida() {
+        let d = request.resource.data;
+        let campos = ['id', 'clienteUid', 'clienteNombre', 'personas', 'inicio',
+                      'franjaId', 'dia', 'comentario', 'estado', 'createdAt',
+                      'updatedAt', 'version'];
+        return d.keys().hasOnly(campos)
+          && d.keys().hasAll(campos)
+          && d.id == reservaId
+          && d.clienteUid == uid()
+          && d.estado == 'SOLICITADA'
+          && d.version == 1
+          && d.personas is int
+          && d.personas >= 1
+          && d.personas <= 8
+          && d.inicio is timestamp
+          && d.inicio > request.time
+          && d.inicio.toMillis() % 1800000 == 0   // multiplo de 30 min
+          && d.franjaId is string
+          && d.dia is string
+          && d.clienteNombre is string
+          && d.clienteNombre.size() <= 80
+          && d.comentario is string
+          && d.comentario.size() <= 200
+          && d.createdAt is timestamp
+          && d.updatedAt == request.time;
+      }
+
+      // Cliente: cancela su propia reserva hasta 2 horas antes
+      function clienteCancela() {
+        let r = resource.data;
+        return r.clienteUid == uid()
+          && r.estado in ['SOLICITADA', 'CONFIRMADA']
+          && request.resource.data.estado == 'CANCELADA'
+          && request.time <= r.inicio - duration.value(2, 'h')
+          && onlyChanged(['estado', 'canceladaAt', 'updatedAt', 'version'])
+          && request.resource.data.canceladaAt == request.time
+          && (r.estado == 'SOLICITADA'
+              || (!existsAfter(slotPath(r.slotId))
+                  && !existsAfter(lockPath(r.clienteUid + '_' + r.franjaId))));
+      }
+
+      // Reglas 2 y 3: confirmar ocupa el slot y el candado en la misma escritura
+      function adminConfirma() {
+        let r = resource.data;
+        let d = request.resource.data;
+        let slotId = d.mesaId + '_' + r.franjaId;
+        let lockId = r.clienteUid + '_' + r.franjaId;
+        return isAdmin()
+          && r.estado == 'SOLICITADA'
+          && d.estado == 'CONFIRMADA'
+          && r.inicio > request.time
+          && onlyChanged(['estado', 'mesaId', 'mesaNombre', 'mesaCapacidad',
+                          'slotId', 'decididoPor', 'updatedAt', 'version'])
+          && d.mesaId is string
+          && d.mesaCapacidad is int
+          && d.mesaCapacidad >= r.personas
+          && d.slotId == slotId
+          && d.decididoPor == uid()
+          && !exists(slotPath(slotId))
+          && getAfter(slotPath(slotId)).data.reservaId == reservaId
+          && !exists(lockPath(lockId))
+          && existsAfter(lockPath(lockId));
+      }
+
+      function adminRechaza() {
+        let d = request.resource.data;
+        return isAdmin()
+          && resource.data.estado == 'SOLICITADA'
+          && d.estado == 'RECHAZADA'
+          && onlyChanged(['estado', 'motivoRechazo', 'decididoPor', 'updatedAt', 'version'])
+          && d.motivoRechazo is string
+          && d.motivoRechazo.size() > 0
+          && d.motivoRechazo.size() <= 200
+          && d.decididoPor == uid();
+      }
+
+      // Regla 4: llegada entre 15 min antes y 15 min despues
+      function hostRegistraLlegada() {
+        let r = resource.data;
+        let d = request.resource.data;
+        return isHost()
+          && r.estado == 'CONFIRMADA'
+          && d.estado == 'EN_MESA'
+          && request.time >= r.inicio - duration.value(15, 'm')
+          && request.time <= r.inicio + duration.value(15, 'm')
+          && onlyChanged(['estado', 'llegadaAt', 'atendidoPor', 'updatedAt', 'version'])
+          && d.llegadaAt == request.time
+          && d.atendidoPor == uid();
+      }
+
+      // Finalizar exige EN_MESA.
+      function hostFinaliza() {
+        let d = request.resource.data;
+        return isHost()
+          && resource.data.estado == 'EN_MESA'
+          && d.estado == 'FINALIZADA'
+          && onlyChanged(['estado', 'finalizadaAt', 'atendidoPor', 'updatedAt', 'version'])
+          && d.finalizadaAt == request.time
+          && d.atendidoPor == uid();
+      }
+
+      // Ausente: confirmada sin llegada, 15 min despues del inicio.
+      function hostMarcaAusente() {
+        let r = resource.data;
+        let d = request.resource.data;
+        return isHost()
+          && r.estado == 'CONFIRMADA'
+          && d.estado == 'AUSENTE'
+          && request.time > r.inicio + duration.value(15, 'm')
+          && onlyChanged(['estado', 'ausenteAt', 'atendidoPor', 'updatedAt', 'version'])
+          && d.ausenteAt == request.time
+          && d.atendidoPor == uid();
+      }
+    }
+
+    // Ocupacion de mesa por franja: slots/{mesaId_franjaId}
+    match /slots/{slotId} {
+      // sin datos personales
+      allow read: if signedIn();
+
+      allow create: if isAdmin()
+        && request.resource.data.mesaId + '_' + request.resource.data.franjaId == slotId
+        && request.resource.data.createdBy == uid()
+        && request.resource.data.dia is string
+        && (slotDeBloqueo() || slotDeReserva());
+
+      allow update: if false;
+
+      allow delete: if signedIn()
+        && ((resource.data.tipo == 'bloqueo'
+              && isAdmin()
+              && !existsAfter(bloqueoPath(slotId)))
+            || (resource.data.tipo == 'reserva'
+              && get(reservaPath(resource.data.reservaId)).data.clienteUid == uid()
+              && getAfter(reservaPath(resource.data.reservaId)).data.estado == 'CANCELADA'));
+
+      function slotDeBloqueo() {
+        return request.resource.data.tipo == 'bloqueo'
+          && request.resource.data.keys().hasOnly(
+               ['mesaId', 'franjaId', 'dia', 'tipo', 'motivo', 'createdBy', 'createdAt'])
+          && request.resource.data.motivo is string
+          && request.resource.data.motivo.size() > 0
+          && existsAfter(bloqueoPath(slotId));
+      }
+
+      function slotDeReserva() {
+        let reserva = getAfter(reservaPath(request.resource.data.reservaId)).data;
+        return request.resource.data.tipo == 'reserva'
+          && request.resource.data.keys().hasOnly(
+               ['mesaId', 'franjaId', 'dia', 'tipo', 'reservaId', 'createdBy', 'createdAt'])
+          && reserva.estado == 'CONFIRMADA'
+          && reserva.slotId == slotId;
+      }
+    }
+
+    // Candado de la regla 3: cliente_franja/{clienteUid_franjaId}
+    match /cliente_franja/{lockId} {
+      allow read: if signedIn() && (isStaff() || resource.data.clienteUid == uid());
+
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['clienteUid', 'franjaId', 'reservaId'])
+        && lockId == request.resource.data.clienteUid + '_' + request.resource.data.franjaId
+        && getAfter(reservaPath(request.resource.data.reservaId)).data.estado == 'CONFIRMADA'
+        && getAfter(reservaPath(request.resource.data.reservaId)).data.clienteUid
+             == request.resource.data.clienteUid;
+
+      allow update: if false;
+
+      allow delete: if signedIn()
+        && resource.data.clienteUid == uid()
+        && getAfter(reservaPath(resource.data.reservaId)).data.estado == 'CANCELADA';
+    }
+
+    // Registro de bloqueos (motivo y actor). Va junto con su slot.
+    match /bloqueos/{slotId} {
+      allow read: if isStaff();
+
+      allow create: if isAdmin()
+        && request.resource.data.createdBy == uid()
+        && getAfter(slotPath(slotId)).data.tipo == 'bloqueo';
+
+      allow update: if false;
+
+      allow delete: if isAdmin() && !existsAfter(slotPath(slotId));
+    }
+
+    // Todo lo demas queda denegado.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,9 @@
+CP-17 · Crash fatal de prueba (build debug, menu QA -> Forzar crash fatal) · 2026-11-04 19:28 (hora Bogota; el telefono esta en UTC)
+
+1) Al tocar "Cerrar la app" en el dialogo la app se cierra:
+11-05 00:28:24.609  3381  3381 E AndroidRuntime: FATAL EXCEPTION: main
+11-05 00:28:24.609  3381  3381 E AndroidRuntime: io.flutter.plugins.firebase.crashlytics.FirebaseCrashlyticsTestCrash: This is a test crash caused by calling .crash() in Dart.
+
+2) Al volver a abrir la app, Crashlytics envia el reporte pendiente:
+11-05 00:28:29.540  4592  4592 I FirebaseCrashlytics: Initializing Firebase Crashlytics 20.1.1 for co.edu.udem.reservas_g62
+11-05 00:28:31.592  4592  4612 I TRuntime.CctTransportBackend: Making request to: https://crashlyticsreports-pa.googleapis.com/v1/firelog/legacy/batchlog

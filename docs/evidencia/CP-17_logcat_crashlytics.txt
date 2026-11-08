@@ -1,0 +1,10 @@
+# Evidencia CP-17 · Crashlytics
+# Build: 1.0.0+1 (debug, menu de prueba solo con kDebugMode)
+# Dispositivo: sdk_gphone64_x86_64 · Android 14 (API 34)
+# Fecha: 2026-10-31
+
+10-31 18:57:47.514  5346  5377 D FirebaseCrashlytics: Opening a new session with ID 6AE63A2B01BC000114E226F6CA1186BF
+10-31 18:57:47.622  5346  5376 D FirebaseCrashlytics: Sending cached crash reports...
+10-31 18:57:47.637  5346  5376 D FirebaseCrashlytics: Sending report through Google DataTransport: 6AE639D603A900010E744A5D6651F8E8
+10-31 18:57:49.701  5346  5377 D FirebaseCrashlytics: Crashlytics report successfully enqueued to DataTransport: 6AE639D603A900010E744A5D6651F8E8
+10-31 18:57:49.702  5346  5377 D FirebaseCrashlytics: Deleted report file: /data/user/0/co.edu.udem.reservas_g62/files/.crashlytics.v3/co.edu.udem.reservas_g62/reports/6AE639D603A900010E744A5D6651F8E8

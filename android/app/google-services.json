@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "945835147960",
+    "project_id": "reservas-g62-2",
+    "storage_bucket": "reservas-g62-2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:945835147960:android:4dde5f5efba4262c12aa4d",
+        "android_client_info": {
+          "package_name": "co.edu.udem.reservas_g62"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCzPEOUfSXJz-DfZARwYtOA9EIY9-2MsAU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

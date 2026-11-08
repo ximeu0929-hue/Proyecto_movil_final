@@ -1,0 +1,10 @@
+[
+  { "id": "M01", "nombre": "Mesa 1 · Ventana", "capacidad": 2, "ubicacion": "Ventana", "caracteristicas": ["Vista a la calle", "Luz natural"] },
+  { "id": "M02", "nombre": "Mesa 2 · Ventana", "capacidad": 2, "ubicacion": "Ventana", "caracteristicas": ["Vista a la calle"] },
+  { "id": "M03", "nombre": "Mesa 3 · Salon", "capacidad": 4, "ubicacion": "Salon principal", "caracteristicas": ["Cerca a la cocina abierta"] },
+  { "id": "M04", "nombre": "Mesa 4 · Salon", "capacidad": 4, "ubicacion": "Salon principal", "caracteristicas": ["Acceso para silla de ruedas"] },
+  { "id": "M05", "nombre": "Mesa 5 · Terraza", "capacidad": 4, "ubicacion": "Terraza", "caracteristicas": ["Aire libre", "Pet friendly"] },
+  { "id": "M06", "nombre": "Mesa 6 · Terraza", "capacidad": 6, "ubicacion": "Terraza", "caracteristicas": ["Aire libre", "Calefactor"] },
+  { "id": "M07", "nombre": "Mesa 7 · Reservado", "capacidad": 8, "ubicacion": "Salon privado", "caracteristicas": ["Privado", "Pantalla"] },
+  { "id": "M08", "nombre": "Mesa 8 · Barra", "capacidad": 3, "ubicacion": "Barra", "caracteristicas": ["Sillas altas", "Frente al bartender"] }
+]
