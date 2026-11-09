@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:final_movil/core/hora_restaurante.dart';
@@ -85,8 +87,10 @@ class FakeRemote implements ReservaRemoteDataSource {
   @override
   Future<Reserva?> getReserva(String id) async => reservas[id];
 
+  final snapshotsCliente = StreamController<List<Reserva>>.broadcast();
+
   @override
-  Stream<List<Reserva>> watchReservasCliente(String uid) => const Stream.empty();
+  Stream<List<Reserva>> watchReservasCliente(String uid) => snapshotsCliente.stream;
 
   @override
   Stream<List<Reserva>> watchReservasDelDia(String dia) => const Stream.empty();
@@ -240,6 +244,77 @@ void main() {
     final marcada = await local.markSynced('fijo', 1);
     expect(marcada, isFalse);
     expect((await local.getById('fijo'))!.pendingSync, isTrue);
+  });
+
+  test('una correccion no se marca sincronizada si el envio anterior si llego', () async {
+    final (reserva, _) = await repo.solicitarReserva(cliente: _ana, personas: 2, inicio: cena);
+
+    await local.save(reserva.copyWith(pendingSync: true));
+    final pendiente = (await local.getById(reserva.id))!;
+    final (resultado, enviada) = await repo
+        .corregirSolicitud(reserva: pendiente, personas: 5, inicio: cena)
+        .then((r) => (r.$2, r.$1));
+
+    expect(resultado, ResultadoEnvio.rechazada);
+    expect(remote.creaciones, 1);
+    expect(remote.reservas[reserva.id]!.personas, 2);
+    expect(enviada.personas, 2);
+    expect(enviada.pendingSync, isFalse);
+    expect(enviada.lastError, ReservaRepositoryImpl.correccionNoAplicada);
+  });
+
+  test('la escucha acepta el servidor aunque baje la version si es mas reciente', () async {
+    final vieja = Reserva(
+      id: 'seed-confirmada',
+      clienteUid: _ana.uid,
+      clienteNombre: 'Ana',
+      personas: 2,
+      inicio: cena,
+      estado: EstadoReserva.cancelada,
+      createdAt: ahora.subtract(const Duration(days: 7)),
+      updatedAt: ahora.subtract(const Duration(days: 6)),
+      version: 3,
+    );
+    await local.save(vieja);
+
+    repo.iniciarEscuchaCliente(_ana.uid);
+    remote.snapshotsCliente.add([
+      vieja.copyWith(estado: EstadoReserva.confirmada, version: 2, updatedAt: ahora),
+    ]);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    final actual = (await local.getById('seed-confirmada'))!;
+    expect(actual.estado, EstadoReserva.confirmada);
+    expect(actual.version, 2);
+    repo.detenerEscuchaCliente();
+  });
+
+  test('la escucha ignora un snapshot viejo que llega tarde', () async {
+    final reciente = Reserva(
+      id: 'r1',
+      clienteUid: _ana.uid,
+      clienteNombre: 'Ana',
+      personas: 2,
+      inicio: cena,
+      estado: EstadoReserva.cancelada,
+      createdAt: ahora,
+      updatedAt: ahora,
+      version: 3,
+    );
+    await local.save(reciente);
+
+    repo.iniciarEscuchaCliente(_ana.uid);
+    remote.snapshotsCliente.add([
+      reciente.copyWith(
+        estado: EstadoReserva.confirmada,
+        version: 2,
+        updatedAt: ahora.subtract(const Duration(minutes: 5)),
+      ),
+    ]);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    expect((await local.getById('r1'))!.estado, EstadoReserva.cancelada);
+    repo.detenerEscuchaCliente();
   });
 
   test('cada cuenta solo ve y sincroniza sus propias reservas', () async {

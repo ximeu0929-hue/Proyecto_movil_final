@@ -1,7 +1,7 @@
 # Backlog de bugs · G62-2 Reservas
 
 **Build evaluada:** 1.0.0+1
-**Fechas:** 2026-10-22 a 2026-11-04
+**Fechas:** 2026-10-22 a 2026-11-09
 
 ## Criterio de prioridad
 
@@ -128,6 +128,29 @@ Prioridad = impacto + riesgo + posibilidad de continuar. No es gusto personal.
 
 ---
 
+## BUG-11 · Despues de correr el seed, el cliente seguia viendo copias viejas
+
+- **Build:** 1.0.0+1 release, antes de la correccion
+- **Pasos:** Con datos de un seed anterior en el telefono (por ejemplo `seed-confirmada` cancelada en CP-20, version 3), volver a correr `tool/seed/seed.mjs` y abrir Mis reservas como `cliente@`.
+- **Esperado:** Ver `seed-confirmada` como CONFIRMADA el 12 nov 13:30 en Mesa 1, igual que en Firestore.
+- **Obtenido:** Seguia "mar 3 nov 13:30 · Cancelada". `_fusionarRemota` descartaba todo snapshot con `version` menor que la copia local, y el seed reescribe los documentos con version 1 o 2.
+- **Prioridad:** **P2** (el dia de la sustentacion se corre el seed y la demo mostraria estados equivocados)
+- **Estado:** Corregido · el snapshot solo se ignora si tiene menor version **y** no es mas reciente (`updatedAt`). Tests `la escucha acepta el servidor aunque baje la version si es mas reciente` y `la escucha ignora un snapshot viejo que llega tarde`.
+- **Verificacion:** 2026-11-09, APK release en el emulador sin borrar los datos de la app: despues de correr el seed, Laura ve "jue 12 nov · Confirmada · Mesa 1" y al cancelarla Firestore queda `CANCELADA` v3 sin `slots/M01_20261112-1330` ni el candado de la franja.
+
+---
+
+## BUG-12 · Una correccion local podia quedar marcada como sincronizada sin haberse aplicado
+
+- **Build:** 1.0.0+1, detectado en revision de codigo
+- **Pasos:** Enviar una solicitud y perder la respuesta (timeout), corregirla mientras sigue pendiente y reenviar.
+- **Esperado:** Si el servidor ya tenia la version original, la correccion no se marca sincronizada y el cliente sabe por que.
+- **Obtenido:** `crearReserva` devolvia el documento existente (v1, SOLICITADA) y `_enviar` llamaba a `markSynced` con la `localVersion` nueva: el telefono mostraba los datos corregidos como "Sincronizada" aunque Firestore tenia los originales.
+- **Prioridad:** **P2**
+- **Estado:** Corregido · `_enviar` y la escucha comparan personas, inicio y comentario; si no coinciden se guarda la version del servidor con el aviso "La solicitud original ya habia llegado al restaurante y no se modifico..." y el envio se informa como rechazado. Test `una correccion no se marca sincronizada si el envio anterior si llego`.
+
+---
+
 ## Riesgos identificados (no reproducidos)
 
 | Id | Riesgo | Mitigación |
@@ -141,7 +164,7 @@ Prioridad = impacto + riesgo + posibilidad de continuar. No es gusto personal.
 | Prioridad | Abiertos | Corregidos |
 |-----------|----------|-----------|
 | P1 | **0** | 3 |
-| P2 | 0 | 3 |
+| P2 | 0 | 5 |
 | P3 | 1 | 3 |
 
 No hay bloqueantes abiertos. El unico abierto es BUG-06 (P3: la app solo

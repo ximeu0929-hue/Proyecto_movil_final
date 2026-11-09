@@ -163,6 +163,12 @@ class ReservaRepositoryImpl implements ReservaRepository {
     try {
       final remota = await remoteSource.crearReserva(reserva);
 
+      if (!_mismaSolicitud(remota, reserva)) {
+        AppLogger.warning('Reserva ${reserva.id}: el servidor ya tenia otra version');
+        await local.save(remota.copyWith(lastError: () => correccionNoAplicada));
+        return ResultadoEnvio.rechazada;
+      }
+
       if (remota.version > 1 || remota.estado != EstadoReserva.solicitada) {
         // ya estaba en el servidor
         await local.save(remota);
@@ -245,11 +251,27 @@ class ReservaRepositoryImpl implements ReservaRepository {
 
   Future<void> _fusionarRemota(Reserva remota) async {
     final actual = await local.getById(remota.id);
-    if (actual != null && !actual.pendingSync && actual.version > remota.version) {
+    if (actual != null &&
+        !actual.pendingSync &&
+        actual.version > remota.version &&
+        !remota.updatedAt.isAfter(actual.updatedAt)) {
       return; // snapshot viejo
+    }
+    if (actual != null && actual.pendingSync && !_mismaSolicitud(remota, actual)) {
+      await local.save(remota.copyWith(lastError: () => correccionNoAplicada));
+      return;
     }
     await local.save(remota);
   }
+
+  static const correccionNoAplicada =
+      'La solicitud original ya habia llegado al restaurante y no se modifico. '
+      'Si necesitas otros datos, cancelala y crea una nueva.';
+
+  static bool _mismaSolicitud(Reserva a, Reserva b) =>
+      a.personas == b.personas &&
+      a.inicio.isAtSameMomentAs(b.inicio) &&
+      a.comentario == b.comentario;
 
   // Administrador y anfitrion: siempre en linea
 
