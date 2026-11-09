@@ -151,6 +151,17 @@ Prioridad = impacto + riesgo + posibilidad de continuar. No es gusto personal.
 
 ---
 
+## BUG-13 · Recepcion no mostraba el resultado de la accion del anfitrion
+
+- **Build:** 1.0.0+1 release, antes de la correccion
+- **Pasos:** Como `anfitrion@`, registrar llegada o marcar ausente en Recepcion.
+- **Esperado:** La tarjeta cambia de estado al confirmar.
+- **Obtenido:** Firestore quedaba bien (`EN_MESA` v3, `AUSENTE` v3), pero la tarjeta seguia "Confirmada" con sus botones hasta cambiar de dia y volver. Pasó dos veces en el emulador el 2026-11-09; la escucha abierta no entrego el cambio y al abrirla de nuevo si aparecia.
+- **Prioridad:** **P2** (el anfitrion podia repetir la accion y recibir un error de version)
+- **Estado:** Corregido · despues de una accion exitosa, Recepcion vuelve a abrir la escucha del dia (`_cambiarDia(_dia)`, lo mismo que hace cambiar de dia). Verificado manualmente que recargar el dia muestra el estado correcto.
+
+---
+
 ## Riesgos identificados (no reproducidos)
 
 | Id | Riesgo | Mitigación |
@@ -164,7 +175,7 @@ Prioridad = impacto + riesgo + posibilidad de continuar. No es gusto personal.
 | Prioridad | Abiertos | Corregidos |
 |-----------|----------|-----------|
 | P1 | **0** | 3 |
-| P2 | 0 | 5 |
+| P2 | 0 | 6 |
 | P3 | 1 | 3 |
 
 No hay bloqueantes abiertos. El unico abierto es BUG-06 (P3: la app solo

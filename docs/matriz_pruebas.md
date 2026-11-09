@@ -11,7 +11,7 @@ Cada caso indica precondicion, pasos, que se esperaba, que ocurrio y con que
 evidencia se comprobo. Un caso sin evidencia verificable se marca NO EJECUTADO;
 no se asume aprobado. Las capturas estan en [`docs/evidencia/`](evidencia/).
 
-**Resumen:** 27 casos · 27 PASA · 0 PASA (parcial) · 0 NO EJECUTADO · 0 FALLA.
+**Resumen:** 28 casos · 28 PASA · 0 PASA (parcial) · 0 NO EJECUTADO · 0 FALLA.
 
 | ID | Precondicion | Cuenta / rol | Pasos | Esperado | Obtenido | Estado | Version | Evidencia |
 |----|--------------|--------------|-------|----------|----------|--------|---------|-----------|
@@ -42,6 +42,7 @@ no se asume aprobado. Las capturas estan en [`docs/evidencia/`](evidencia/).
 | CP-25 | Laura sin conexion con una solicitud pendiente | `cliente@` | `am force-stop` y abrir la app en modo avion; quitar el modo avion | La sesion y el perfil se restauran sin red, la solicitud sigue pendiente y luego se envia sola una vez | Entra como Laura sin pedir clave, Mesas muestra "No hay conexion" + Reintentar, Mis reservas "Sincronizar pendientes (1)". Al volver la red pasa a Sincronizada sin tocar nada; Firestore: un solo documento `b1bc65e0…` | **PASA** | 1.0.0+1 release (2026-11-09) | Ejecucion 2026-11-09 |
 | CP-26 | Laura confirmada hoy 13:30 (M01); reloj del emulador adelantado a 13:16 con la hora real en 13:00 | `anfitrion@` | Recepcion → Registrar llegada → Confirmar | La app habilita el boton por su reloj, pero el servidor decide con `request.time` | "El servidor rechazo la operacion por las reglas de seguridad."; Firestore sigue `CONFIRMADA` v2 | **PASA** | 1.0.0+1 release (2026-11-09) | `R-03` del backlog, ejecucion 2026-11-09 |
 | CP-27 | Laura (M01) y Mateo (M02) confirmados hoy 13:30 desde el tablero del admin | `anfitrion@` | (a) 12:56: ver Recepcion; (b) 13:15: Registrar llegada a Laura; (c) Finalizar | (a) Llegada bloqueada fuera del margen; (b) CONFIRMADA → EN_MESA; (c) EN_MESA → FINALIZADA sin opcion de reactivar | (a) "Registrar llegada" deshabilitado con "Llegada desde 13:15 hasta 13:45". (b) Firestore `EN_MESA` v3 con `llegadaAt` 13:15 y `atendidoPor`. (c) Dialogo "Se libera Mesa 1 · Ventana."; `FINALIZADA` v4 con `finalizadaAt`; la tarjeta queda sin botones y el contador "En mesa" vuelve a 0 | **PASA** | 1.0.0+1 release (2026-11-09) | Ejecucion 2026-11-09 |
+| CP-28 | Mateo confirmado hoy 13:30 (M02) sin llegada | `anfitrion@` | 13:46: Recepcion → Marcar ausente → Confirmar | AUSENTE solo despues de +15 min, sin llegada, y queda en el historial | "Confirmada · vencida" con "Registrar llegada" deshabilitado y "Marcar ausente"; dialogo "Mateo Cliente no llego. La reserva queda en el historial como AUSENTE."; Firestore `AUSENTE` v3 con `ausenteAt` 13:46 y sin `llegadaAt`. El tablero no se actualizo hasta recargar el dia (BUG-13) | **PASA** | 1.0.0+1 release (2026-11-09) | Ejecucion 2026-11-09, BUG-13 |
 
 ## Evidencia detallada
 

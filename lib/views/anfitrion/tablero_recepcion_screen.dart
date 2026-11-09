@@ -83,6 +83,7 @@ class _TableroRecepcionScreenState extends State<TableroRecepcionScreen> {
       await operacion();
       if (!mounted) return;
       showResultSnack(context, exito);
+      _cambiarDia(_dia);
     } on ReservaException catch (e) {
       if (!mounted) return;
       showResultSnack(context, e.message, error: true);
