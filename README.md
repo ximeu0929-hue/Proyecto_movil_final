@@ -339,8 +339,9 @@ terminar borra lo que creó; después se vuelve a correr el seed.
   de personas, franja, comentario opcional, mesa y horas de llegada/salida.
 - **Finalidad:** gestionar la reserva y la atención en el restaurante.
 - **Acceso por rol:** el cliente solo ve sus reservas; el administrador y el
-  anfitrión ven las reservas del día (nombre del cliente, sin correo). Los
-  `slots` no tienen datos personales.
+  anfitrión ven las reservas del día con el nombre del cliente. Las reglas
+  les permiten leer el perfil (`users`), que incluye el correo, pero la app no
+  lo muestra. Los `slots` no tienen datos personales.
 - **Crashlytics:** recibe trazas de errores, modelo del dispositivo y versión de
   la app; no recibe correos, nombres, contraseñas ni tokens.
 - **En el teléfono:** Drift guarda las reservas del usuario; SharedPreferences
