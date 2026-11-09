@@ -7,7 +7,7 @@ Proyecto final · Desarrollo Móvil · Universidad de Medellín · 2026-2 · Gru
 - Ximena Ruiz Arias
 - Víctor Manuel Monsalve Aguilar
 
-**Versión entregada:** `1.0.0+1` (ver `pubspec.yaml`)
+**Versión entregada:** `1.0.0+2` (ver `pubspec.yaml`)
 
 ## Descripción
 
@@ -434,11 +434,11 @@ terminar borra lo que creó; después se vuelve a correr el seed.
 
 ## Checklist de release
 
-Se marca solo lo comprobado sobre la build 1.0.0+1 (detalle y evidencia en la matriz).
+Se marca solo lo comprobado sobre las builds 1.0.0+1 y 1.0.0+2 (detalle y evidencia en la matriz).
 
 - [x] Autenticación, tres roles y reglas Firestore comprobados. *Registro, login, errores y cambio de cuenta en el APK release (CP-01, CP-02, CP-04); 16 casos de reglas contra el Firestore real con el token de cada rol (CP-03, CP-15).*
 - [x] Flujo completo, estados de interfaz y reglas de negocio validados. *Los tres roles recorridos en el APK release: solicitar, confirmar con mesa valida, cancelar con liberacion de mesa, llegada en ventana, finalizar y ausencia (CP-09 a CP-16, CP-20).*
 - [x] Drift, cambio de cuenta, pendientes y reintentos sin duplicados comprobados. *Guardado sin conexión, persistencia tras reiniciar y sincronización con un solo documento en el APK release (CP-08 a CP-10); aislamiento por cuenta (CP-04); 15 tests del repository; reinicio sin red y seed nuevo (CP-23, CP-25).*
 - [x] Crashlytics verificado; logs y permisos revisados. *Evento de prueba visible en la consola, versión 1.0.0 (CP-17); opción de prueba ausente en release; permisos INTERNET y ACCESS_NETWORK_STATE; logs sin correos ni claves.*
-- [x] Versión actualizada; APK release instalado y probado. *`G62-2_Reservas_v1.0.0+1.apk` (1.0.0+1) instalado y recorrido con cliente, administrador y anfitrion (CP-18).*
+- [x] Versión actualizada; APK release instalado y probado. *`G62-2_Reservas_v1.0.0+2.apk` (1.0.0+2) instalado y recorrido con cliente, administrador y anfitrion (CP-29); la 1.0.0+1 en CP-18.*
 - [x] Código, README, datos de prueba y matriz QA listos para revisión. *`flutter analyze` sin issues, `flutter test` 59/59, evidencia en `docs/evidencia/`.*

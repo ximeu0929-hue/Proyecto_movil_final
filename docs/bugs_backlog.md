@@ -1,6 +1,6 @@
 # Backlog de bugs · G62-2 Reservas
 
-**Build evaluada:** 1.0.0+1
+**Build evaluada:** 1.0.0+1 (BUG-01 a BUG-13); correcciones incluidas en 1.0.0+2
 **Fechas:** 2026-10-22 a 2026-11-09
 
 ## Criterio de prioridad

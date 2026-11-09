@@ -1,6 +1,6 @@
 # Matriz de pruebas · G62-2 Reservas
 
-**Build final probada:** 1.0.0+1 · `G62-2_Reservas_v1.0.0+1.apk` (release, firma de depuracion)
+**Build final probada:** 1.0.0+2 · `G62-2_Reservas_v1.0.0+2.apk` (release, firma de depuracion). Los casos CP-01 a CP-28 se ejecutaron sobre 1.0.0+1; CP-29 es el recorrido final sobre 1.0.0+2.
 **Fechas de ejecucion:** 2026-10-22 (automatizadas), 2026-10-23 y 2026-10-31 (APK en emulador y reglas contra el servidor), 2026-11-04 (reorganizacion segun la guia de la clase 14, tema morado y capturas repetidas), 2026-11-09 (revision final: seed nuevo, BUG-11 y BUG-12, concurrencia simultanea, reinicio sin red)
 **Dispositivo:** Android Emulator `Medium_Phone` · `sdk_gphone64_x86_64` · Android 14 (API 34) · zona horaria del telefono en **UTC** a proposito (ver BUG-09)
 **Origen de datos:** `https://reservas-g62-2.web.app/api/mesas.json`
@@ -11,7 +11,7 @@ Cada caso indica precondicion, pasos, que se esperaba, que ocurrio y con que
 evidencia se comprobo. Un caso sin evidencia verificable se marca NO EJECUTADO;
 no se asume aprobado. Las capturas estan en [`docs/evidencia/`](evidencia/).
 
-**Resumen:** 28 casos · 28 PASA · 0 PASA (parcial) · 0 NO EJECUTADO · 0 FALLA.
+**Resumen:** 29 casos · 29 PASA · 0 PASA (parcial) · 0 NO EJECUTADO · 0 FALLA.
 
 | ID | Precondicion | Cuenta / rol | Pasos | Esperado | Obtenido | Estado | Version | Evidencia |
 |----|--------------|--------------|-------|----------|----------|--------|---------|-----------|
@@ -43,6 +43,7 @@ no se asume aprobado. Las capturas estan en [`docs/evidencia/`](evidencia/).
 | CP-26 | Laura confirmada hoy 13:30 (M01); reloj del emulador adelantado a 13:16 con la hora real en 13:00 | `anfitrion@` | Recepcion → Registrar llegada → Confirmar | La app habilita el boton por su reloj, pero el servidor decide con `request.time` | "El servidor rechazo la operacion por las reglas de seguridad."; Firestore sigue `CONFIRMADA` v2 | **PASA** | 1.0.0+1 release (2026-11-09) | `R-03` del backlog, ejecucion 2026-11-09 |
 | CP-27 | Laura (M01) y Mateo (M02) confirmados hoy 13:30 desde el tablero del admin | `anfitrion@` | (a) 12:56: ver Recepcion; (b) 13:15: Registrar llegada a Laura; (c) Finalizar | (a) Llegada bloqueada fuera del margen; (b) CONFIRMADA → EN_MESA; (c) EN_MESA → FINALIZADA sin opcion de reactivar | (a) "Registrar llegada" deshabilitado con "Llegada desde 13:15 hasta 13:45". (b) Firestore `EN_MESA` v3 con `llegadaAt` 13:15 y `atendidoPor`. (c) Dialogo "Se libera Mesa 1 · Ventana."; `FINALIZADA` v4 con `finalizadaAt`; la tarjeta queda sin botones y el contador "En mesa" vuelve a 0 | **PASA** | 1.0.0+1 release (2026-11-09) | Ejecucion 2026-11-09 |
 | CP-28 | Mateo confirmado hoy 13:30 (M02) sin llegada | `anfitrion@` | 13:46: Recepcion → Marcar ausente → Confirmar | AUSENTE solo despues de +15 min, sin llegada, y queda en el historial | "Confirmada · vencida" con "Registrar llegada" deshabilitado y "Marcar ausente"; dialogo "Mateo Cliente no llego. La reserva queda en el historial como AUSENTE."; Firestore `AUSENTE` v3 con `ausenteAt` 13:46 y sin `llegadaAt`. El tablero no se actualizo hasta recargar el dia (BUG-13) | **PASA** | 1.0.0+1 release (2026-11-09) | Ejecucion 2026-11-09, BUG-13 |
+| CP-29 | `G62-2_Reservas_v1.0.0+2.apk` instalado sobre la version anterior (`versionCode=2`, arm64-v8a, armeabi-v7a y x86_64); seed corrido de nuevo | los 3 roles | Abrir la app con sesion; Laura revisa Activas y solicita hoy 21:00; el admin la confirma en M01; el anfitrion abre Recepcion | Recorrido completo en la build de entrega, sin errores | Sesion restaurada; Laura ve "jue 12 nov · Confirmada" despues del seed (BUG-11); solicitud `SOLICITADA` v1 → admin `CONFIRMADA` v2 con `slots/M01_20261109-2100` (el tablero se actualiza en unos 10 s); Recepcion: "Por llegar 1", llegada deshabilitada "desde 20:45". Logcat sin `[ERROR]` ni `FATAL` | **PASA** | 1.0.0+2 release | Ejecucion 2026-11-09 |
 
 ## Evidencia detallada
 
